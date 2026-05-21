@@ -1,0 +1,49 @@
+<div class="admin-header">
+    <h2>Добавить статью</h2>
+    <button class="admin-btn" onclick="backToDashboard()">Назад</button>
+</div>
+
+<form method="POST" action="/admin/add_article" enctype="multipart/form-data">
+    <div class="form-group">
+        <label>Категория:</label>
+        <select name="category_id" required>
+            {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Заголовок:</label>
+        <input type="text" name="title" required>
+    </div>
+
+    <div class="form-group">
+        <label>Содержание:</label>
+        <textarea name="content" rows="10" required></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Изображение:</label>
+        <input type="file" name="image">
+    </div>
+
+    <div class="form-group">
+        <label>Файлы:</label>
+        <input type="file" name="files" multiple>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="admin-btn">Сохранить</button>
+    </div>
+</form>
+
+<script>
+    function backToDashboard() {
+        fetch('/admin/dashboard')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('admin-dashboard-placeholder').innerHTML = html;
+            });
+    }
+</script>

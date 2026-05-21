@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block title %}Админ-панель{% endblock %}
+
+{% block content %}
+<h1>⚙️ Админ-панель</h1>
+
+<div class="admin-tabs">
+    <button class="admin-tab-btn active" onclick="showAdminTab('categories')">Категории</button>
+    <button class="admin-tab-btn" onclick="showAdminTab('add-category')">Добавить категорию</button>
+    <button class="admin-tab-btn" onclick="showAdminTab('add-article')">Добавить статью</button>
+    <button class="admin-tab-btn" onclick="showAdminTab('messages')">Сообщения</button>
+</div>
+
+<!-- Категории -->
+<div id="categories" class="admin-tab-content active">
+    <div class="card">
+        <h3>Управление категориями</h3>
+        <div class="grid">
+            {% for category in categories %}
+            <div class="card">
+                <h4>{{ category.name }}</h4>
+                <p>{{ category.description }}</p>
+                <small>{{ category.articles|length }} статей</small>
+                <div class="mt-2">
+                    <button class="btn btn-small btn-danger" onclick="deleteCategory('{{ category.id }}')">Удалить</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Добавить категорию -->
+<div id="add-category" class="admin-tab-content">
+    <div class="card">
+        <h3>Добавить категорию</h3>
+        <form id="addCategoryForm" onsubmit="handleAddCategory(event)">
+            <input type="text" name="name" placeholder="Название категории" required>
+            <textarea name="description" placeholder="Описание" rows="3" required></textarea>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+        </form>
+    </div>
+</div>
+
+<!-- Добавить статью -->
+<div id="add-article" class="admin-tab-content">
+    <div class="card">
+        <h3>📝 Добавить статью (Telegraph style)</h3>
+        <form id="addArticleForm" onsubmit="handleAddArticle(event)" enctype="multipart/form-data">
+            <select name="category_id" required>
+                <option value="">Выберите категорию</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="text" name="title" placeholder="Заголовок статьи" required style="font-size: 18px; font-weight: 600;">
+
+            <textarea name="content" id="articleContent" placeholder="Содержание статьи (поддерживается форматирование)&#10;&#10;Пример:&#10;## Заголовок&#10;**Жирный текст**&#10;*Курсив*&#10;```код```" rows="15" required style="font-family: monospace; line-height: 1.6;"></textarea>
+
+            <div class="file-upload-section">
+                <label class="upload-label">
+                    <div class="upload-icon">🖼️</div>
+                    <div class="upload-text">
+                        <strong>Изображение</strong>
+                        <span>Перетащите файл или кликните для выбора (PNG, JPG, GIF)</span>
+                    </div>
+                    <input type="file" name="image" accept="image/*" onchange="previewImage(this)">
+                </label>
+                <div id="imagePreview" class="image-preview" style="display:none;"></div>
+            </div>
+
+            <div class="file-upload-section">
+                <label class="upload-label multiple">
+                    <div class="upload-icon">📎</div>
+                    <div class="upload-text">
+                        <strong>Прикрепленные файлы</strong>
+                        <span>Можно выбрать несколько файлов (PDF, DOCX, XLSX и др.)</span>
+                    </div>
+                    <input type="file" name="files" multiple accept=".pdf,.docx,.xlsx,.pptx,.txt,.zip,.rar" onchange="showSelectedFiles(this)">
+                </label>
+                <div id="filesList" class="files-list"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 16px;">
+                💾 Сохранить статью
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+.file-upload-section {
+    margin: 20px 0;
+}
+
+.upload-label {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #f8f9fa;
+}
+
+.upload-label:hover {
+    border-color: var(--primary-green);
+    background: #e8f5e9;
+}
+
+.upload-label.multiple {
+    border-color: var(--primary-orange);
+}
+
+.upload-label.multiple:hover {
+    background: #fff3e0;
+}
+
+.upload-icon {
+    font-size: 48px;
+}
+
+.upload-text {
+    flex: 1;
+}
+
+.upload-text strong {
+    display: block;
+    color: var(--text-main);
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.upload-text span {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.upload-label input[type="file"] {
+    display: none;
+}
+
+.image-preview {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.files-list {
+    margin-top: 15px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.file-item .file-icon {
+    font-size: 20px;
+}
+
+.file-item .file-name {
+    flex: 1;
+    font-size: 14px;
+}
+
+.file-item .file-size {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+</style>
+
+<script>
+function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function showSelectedFiles(input) {
+    const list = document.getElementById('filesList');
+    if (input.files && input.files.length > 0) {
+        let html = '';
+        for (let i = 0; i < input.files.length; i++) {
+            const file = input.files[i];
+            const size = (file.size / 1024).toFixed(1) + ' KB';
+            html += `
+                <div class="file-item">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${size}</span>
+                </div>
+            `;
+        }
+        list.innerHTML = html;
+    } else {
+        list.innerHTML = '';
+    }
+}
+
+// ... (остальной код форм без изменений)
+</script>
+
+<!-- Сообщения -->
+<div id="messages" class="admin-tab-content">
+    <div class="card">
+        <h3>Управление сообщениями</h3>
+        <form id="addMessageForm" onsubmit="handleAddMessage(event)" class="mb-2">
+            <input type="text" id="msgTitle" placeholder="Заголовок" required>
+            <textarea id="msgContent" placeholder="Содержание" rows="3" required></textarea>
+            <input type="text" id="msgAssigned" placeholder="Назначено" required>
+            <select id="msgPriority">
+                <option value="low">Низкий</option>
+                <option value="medium">Средний</option>
+                <option value="high">Высокий</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Добавить сообщение</button>
+        </form>
+        
+        <div class="grid mt-2">
+            {% for message in messages %}
+            <div class="card">
+                <h4>{{ message.title }}</h4>
+                <p>{{ message.content }}</p>
+                <div class="message-meta">
+                    <span class="badge badge-{{ 'red' if message.priority == 'high' else 'orange' if message.priority == 'medium' else 'green' }}">
+                        {{ message.priority }}
+                    </span>
+                    <span>👤 {{ message.assigned_to }}</span>
+                </div>
+                <button class="btn btn-small btn-danger mt-2" onclick="deleteMessage({{ message.id }})">Удалить</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function showAdminTab(tabId) {
+    document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.target.classList.add('active');
+}
+
+async function handleAddCategory(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    const res = await fetch('/api/add_category', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    if(res.ok) {
+        alert('Категория добавлена');
+        location.reload();
+    }
+}
+
+async function handleAddArticle(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    const res = await fetch('/api/add_article', {
+        method: 'POST',
+        body: formData
+    });
+    
+    if(res.ok) {
+        alert('Статья добавлена');
+        e.target.reset();
+    }
+}
+
+async function handleAddMessage(e) {
+    e.preventDefault();
+    const data = {
+        title: document.getElementById('msgTitle').value,
+        content: document.getElementById('msgContent').value,
+        assigned_to: document.getElementById('msgAssigned').value,
+        priority: document.getElementById('msgPriority').value
+    };
+    
+    const res = await fetch('/api/add_message', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    if(res.ok) {
+        alert('Сообщение добавлено');
+        location.reload();
+    }
+}
+
+async function deleteCategory(id) {
+    if(!confirm('Удалить категорию?')) return;
+    
+    const res = await fetch(`/api/delete_category/${id}`, {method: 'POST'});
+    if(res.ok) location.reload();
+}
+
+async function deleteMessage(id) {
+    if(!confirm('Удалить сообщение?')) return;
+    
+    const res = await fetch(`/api/delete_message/${id}`, {method: 'POST'});
+    if(res.ok) location.reload();
+}
+</script>
+
+<style>
+.admin-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+}
+.admin-tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.admin-tab-btn.active {
+    border-bottom-color: var(--primary-green);
+    color: var(--primary-green);
+}
+.admin-tab-content { display: none; }
+.admin-tab-content.active { display: block; }
+</style>
+{% endblock %}

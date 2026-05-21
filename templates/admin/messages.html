@@ -1,0 +1,21 @@
+<div class="message-list">
+    {% for message in messages %}
+    <div class="message-card">
+        <h3>{{ message.title }}</h3>
+        <p>{{ message.content }}</p>
+        <div class="message-meta">
+            <span>Назначено: {{ message.assigned_to }}</span>
+            <span>Приоритет: {{ message.priority }}</span>
+            <span>Статус: {{ message.status }}</span>
+            <span>Дата: {{ message.created_at }}</span>
+        </div>
+        <div class="message-actions">
+            <select onchange="updateMessageStatus({{ message.id }}, this.value)">
+                <option value="pending" {% if message.status == 'pending' %}selected{% endif %}>В ожидании</option>
+                <option value="in_progress" {% if message.status == 'in_progress' %}selected{% endif %}>В работе</option>
+                <option value="completed" {% if message.status == 'completed' %}selected{% endif %}>Завершено</option>
+            </select>
+        </div>
+    </div>
+    {% endfor %}
+</div>

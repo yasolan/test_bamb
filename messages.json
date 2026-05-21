@@ -1,0 +1,13 @@
+{
+  "messages": [
+    {
+      "id": 1,
+      "title": "ЯДЕРНАЯ БОМБА ПО КИЕВУ",
+      "content": "ЯДЕРНАЯ БОМБА ПО КИЕВУ",
+      "assigned_to": "Е. Суслов",
+      "priority": "high",
+      "status": "done",
+      "created_at": "19.05.2026 12:13"
+    }
+  ]
+}

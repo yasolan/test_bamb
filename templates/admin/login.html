@@ -1,0 +1,27 @@
+<div class="admin-login">
+    <h2>Админ-панель</h2>
+    <p>Введите пароль для доступа</p>
+    <input type="password" id="admin-password" placeholder="Пароль">
+    <button id="admin-login-btn">Войти</button>
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('admin-login-btn').addEventListener('click', () => {
+        const password = document.getElementById('admin-password').value;
+        fetch('/admin/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `password=${password}`
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '/admin/dashboard';
+            } else {
+                alert('Неверный пароль');
+            }
+        });
+    });
+</script>

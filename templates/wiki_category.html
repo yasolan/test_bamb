@@ -1,0 +1,30 @@
+<div class="category-header">
+    <h2>{{ category.name }}</h2>
+    <p>{{ category.description }}</p>
+</div>
+
+<div class="articles-grid">
+    {% for article in category.articles %}
+    <div class="article-card" data-article-id="{{ article.id }}">
+        <h3>{{ article.title }}</h3>
+        <p>{{ article.content[:100] }}...</p>
+        {% if article.image %}
+        <img src="{{ url_for('static', filename=article.image) }}" class="article-image">
+        {% endif %}
+        {% if article.files %}
+        <div class="article-files">
+            <h4>Прикрепленные файлы:</h4>
+            <ul>
+                {% for file in article.files %}
+                <li>
+                    <a href="{{ url_for('static', filename=file) }}" target="_blank">
+                        {{ file.split('/')[-1] }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>

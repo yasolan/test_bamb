@@ -1,0 +1,110 @@
+<div class="wiki-header">
+    <h2>База знаний</h2>
+    <p>Поиск и управление документацией по внутренним процессам</p>
+</div>
+
+<div class="wiki-search">
+    <input type="text" id="wiki-search" placeholder="Начните вводить запрос...">
+    <div class="search-hint">Например: "VLAN", "настройка", "проблема с интернетом"</div>
+</div>
+
+<div class="wiki-categories">
+    <h3>Категории</h3>
+    <div class="categories-grid">
+        {% for category in categories %}
+        <div class="category-card" data-category-id="{{ category.id }}">
+            <h4>{{ category.name }}</h4>
+            <p>{{ category.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', function() {
+        // Загрузка категорий
+        loadCategories();
+
+        // Добавление подсказок для поиска
+        const searchInput = document.getElementById('wiki-search');
+        searchInput.addEventListener('focus', () => {
+            const hint = document.querySelector('.search-hint');
+            hint.style.display = 'block';
+        });
+        searchInput.addEventListener('blur', () => {
+            const hint = document.querySelector('.search-hint');
+            hint.style.display = 'none';
+        });
+    });
+
+    function loadCategories() {
+        fetch('/wiki')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('wiki-content-placeholder').innerHTML = html;
+
+                // Добавляем обработчики кликов на категории
+                document.querySelectorAll('.category-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        const categoryId = this.getAttribute('data-category-id');
+                        loadCategory(categoryId);
+                    });
+                });
+            });
+    }
+
+    function loadCategory(categoryId) {
+        fetch(`/wiki/category/${categoryId}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('wiki-content-placeholder').innerHTML = html;
+
+                // Добавляем обработчики кликов на статьи
+                document.querySelectorAll('.article-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        const articleId = this.getAttribute('data-article-id');
+                        loadArticle(articleId);
+                    });
+                });
+            });
+    }
+
+    function loadArticle(articleId) {
+        fetch(`/wiki/article/${articleId}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('wiki-content-placeholder').innerHTML = html;
+            });
+    }
+
+    // Поиск
+    document.getElementById('wiki-search').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        if (query.length > 2) {
+            fetch(`/wiki/search?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    let html = '<h3>Результаты поиска</h3>';
+                    if (data.results.length === 0) {
+                        html += '<p>Ничего не найдено. Попробуйте другой запрос.</p>';
+                    } else {
+                        html += '<div class="search-results">';
+                        data.results.forEach(result => {
+                            html += `
+                                <div class="search-result" onclick="loadArticle('${result.id}')">
+                                    <h4>${result.title}</h4>
+                                    <p class="search-result-category">${result.category}</p>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    document.getElementById('wiki-content-placeholder').innerHTML = html;
+                });
+        } else {
+            // Показываем категории при пустом поиске
+            loadCategories();
+        }
+    });
+</script>

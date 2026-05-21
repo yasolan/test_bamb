@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ article.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='wiki.css') }}">
+    <style>
+        body { margin: 0; background: #F0F2F5; padding: 40px 20px; }
+        .article { max-width: 900px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #21A038, #158a2a); color: white; padding: 30px 40px; }
+        .header-buttons { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; border: 2px solid white; background: rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn:hover { background: white; color: #21A038; }
+        .header h1 { margin: 10px 0 5px 0; }
+        .header .cat { opacity: 0.9; font-size: 14px; display: block; margin-top: 10px; }
+        .content { padding: 40px; white-space: pre-wrap; line-height: 1.8; font-size: 16px; }
+        .files { margin: 30px 40px 40px; padding: 25px; background: #f8f9fa; border-radius: 12px; }
+        .file { display: flex; align-items: center; gap: 12px; padding: 12px; background: white; margin-bottom: 10px; border-radius: 8px; }
+        .notif { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: #21A038; color: white; padding: 16px 32px; border-radius: 12px; display: none; z-index: 9999; }
+    </style>
+</head>
+<body>
+    <div class="article">
+        <div class="header">
+            <div class="header-buttons">
+                <button class="btn" onclick="window.close()">← Закрыть</button>
+                <button class="btn" onclick="copyText()">📋 Копировать</button>
+            </div>
+            <span class="cat">📁 {{ category.name }}</span>
+            <h1>{{ article.title }}</h1>
+        </div>
+        <div class="content" id="txt">{{ article.content }}</div>
+        {% if article.files and article.files|length > 0 %}
+        <div class="files">
+            <h3>📎 Файлы</h3>
+            {% for f in article.files %}
+            <div class="file">
+                <span>📄</span>
+                <span style="flex:1">{{ f.split('/')[-1] }}</span>
+                <a href="{{ url_for('static', filename=f) }}" download style="padding:8px 16px; background:#21A038; color:white; text-decoration:none; border-radius:6px;">Скачать</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div id="notif" class="notif">✅ Скопировано!</div>
+    <script>
+    function copyText() {
+        navigator.clipboard.writeText(document.getElementById('txt').innerText).then(() => {
+            const n = document.getElementById('notif');
+            n.style.display = 'block';
+            setTimeout(() => n.style.display = 'none', 3000);
+        });
+    }
+    </script>
+</body>
+</html>

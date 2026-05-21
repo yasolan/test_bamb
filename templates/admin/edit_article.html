@@ -1,0 +1,64 @@
+<div class="admin-header">
+    <h2>Редактировать статью</h2>
+    <button class="admin-btn" onclick="backToDashboard()">Назад</button>
+</div>
+
+<form method="POST" action="/admin/edit_article/{{ article.id }}" enctype="multipart/form-data">
+    <div class="form-group">
+        <label>Категория:</label>
+        <select name="category_id" required>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if category.id == article.id %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Заголовок:</label>
+        <input type="text" name="title" value="{{ article.title }}" required>
+    </div>
+
+    <div class="form-group">
+        <label>Содержание:</label>
+        <textarea name="content" rows="10" required>{{ article.content }}</textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Изображение:</label>
+        <input type="file" name="image">
+        {% if article.image %}
+        <p>Текущее изображение: <a href="{{ url_for('static', filename=article.image) }}" target="_blank">Просмотреть</a></p>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label>Файлы:</label>
+        <input type="file" name="files" multiple>
+        {% if article.files %}
+        <h4>Текущие файлы:</h4>
+        <ul>
+            {% for file in article.files %}
+            <li>
+                <a href="{{ url_for('static', filename=file) }}" target="_blank">
+                    {{ file.split('/')[-1] }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="admin-btn">Сохранить</button>
+    </div>
+</form>
+
+<script>
+    function backToDashboard() {
+        fetch('/admin/dashboard')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('admin-dashboard-placeholder').innerHTML = html;
+            });
+    }
+</script>

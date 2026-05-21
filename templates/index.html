@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}NOC Utilities{% endblock %}
+
+{% block content %}
+<div class="tabs-nav">
+    <button class="tab-btn active" onclick="openTab('lac-tac', this)">📡 LAC/TAC</button>
+    <button class="tab-btn" onclick="openTab('logs', this)">📋 Логи</button>
+    <button class="tab-btn" onclick="openTab('wiki', this)">📚 База знаний</button>
+    <button class="tab-btn" onclick="openTab('messages', this)">💬 Сообщения</button>
+</div>
+
+<div class="tab-content">
+    <!-- LAC/TAC -->
+    <div id="lac-tac" class="tab-pane active">
+        <div class="card">
+            <h3>📡 LAC/TAC Expander</h3>
+            <input type="text" id="lacInput" placeholder="Например: 324-1000, 5, 10-12">
+            <button class="btn btn-primary" onclick="handleExpand()">Разобрать</button>
+            <div id="expandResult" class="result-box" style="display:none; margin-top:15px;">
+                <pre id="resultText"></pre>
+                <button class="btn btn-secondary" onclick="copyResult()" style="margin-top:10px;">📋 Копировать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Логи -->
+    <div id="logs" class="tab-pane">
+        <div class="card">
+            <h3>📋 История операций</h3>
+            <table id="logsTable">
+                <thead>
+                    <tr><th>Дата и время</th><th>IP</th><th>Введено</th><th>Чисел</th></tr>
+                </thead>
+                <tbody><tr><td colspan="4" class="text-center">Загрузка...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- База знаний -->
+    <div id="wiki" class="tab-pane">
+        <div class="card">
+            <h3>📚 База знаний</h3>
+            <input type="text" id="wikiSearch" placeholder="Поиск статей..." class="search-input">
+            <div id="wikiGrid" class="grid"></div>
+        </div>
+    </div>
+
+    <!-- Сообщения -->
+    <div id="messages" class="tab-pane">
+        <div class="card">
+            <h3>💬 Задачи</h3>
+            <div id="msgGrid" class="grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно -->
+<div id="messageModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Заголовок</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+
+<script>
+// Переключение вкладок
+function openTab(tabId, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+
+    if(tabId === 'logs') loadLogs();
+    if(tabId === 'wiki') loadWiki();
+    if(tabId === 'messages') loadMessages();
+}
+
+// Уведомления
+function showNotification(msg) {
+    const n = document.getElementById('notification');
+    n.textContent = msg;
+    n.style.display = 'block';
+    setTimeout(() => n.style.display = 'none', 3000);
+}
+
+// LAC/TAC
+async function handleExpand() {
+    const input = document.getElementById('lacInput').value;
+    const res = await fetch('/expand', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({input, split_columns: true})
+    });
+    const data = await res.json();
+    if(data.chunks && data.chunks[0] && data.chunks[0].length > 0) {
+        document.getElementById('resultText').textContent = data.chunks[0].join('\n');
+        document.getElementById('expandResult').style.display = 'block';
+    } else {
+        showNotification('❌ Неверный ввод');
+    }
+}
+
+function copyResult() {
+    const text = document.getElementById('resultText').textContent;
+    navigator.clipboard.writeText(text).then(() => showNotification('✅ Скопировано!'));
+}
+
+// Логи
+async function loadLogs() {
+    try {
+        const res = await fetch('/get_logs');
+        const data = await res.json();
+        const tbody = document.querySelector('#logsTable tbody');
+        if(data.logs && data.logs.length > 0) {
+            tbody.innerHTML = data.logs.slice(-20).reverse().map(l =>
+                `<tr><td>${new Date(l.timestamp).toLocaleString('ru-RU')}</td><td>${l.ip}</td><td>${l.input}</td><td>${l.count}</td></tr>`
+            ).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center">Нет записей</td></tr>';
+        }
+    } catch(e) {
+        console.error('Logs error:', e);
+    }
+}
+
+// Wiki
+async function loadWiki() {
+    try {
+        const res = await fetch('/wiki');
+        const data = await res.json();
+        const grid = document.getElementById('wikiGrid');
+        if(data.categories && data.categories.length > 0) {
+            grid.innerHTML = data.categories.map(c => `
+                <div class="card category-card" onclick="showCategory('${c.id}', '${c.name}')">
+                    <h4>${c.name}</h4>
+                    <p>${c.description}</p>
+                    <small>${c.articles.length} статей</small>
+                </div>
+            `).join('');
+        } else {
+            grid.innerHTML = '<p class="text-center text-muted">Нет категорий</p>';
+        }
+    } catch(e) {
+        console.error('Wiki error:', e);
+    }
+}
+
+async function showCategory(catId, catName) {
+    try {
+        const res = await fetch('/wiki/category/' + catId);
+        const cat = await res.json();
+        const grid = document.getElementById('wikiGrid');
+
+        if(cat.articles && cat.articles.length > 0) {
+            let html = `<button class="btn btn-secondary" onclick="loadWiki()" style="margin-bottom:15px;">← Назад</button>
+            <h3 style="margin-bottom:20px; color:var(--primary-green);">📁 ${catName}</h3><div class="articles-grid">`;
+
+            cat.articles.forEach(art => {
+                html += `
+                    <div class="card article-card" onclick="openArticle('${art.id}')">
+                        <h4>${art.title}</h4>
+                        <p>${art.content.substring(0, 120)}${art.content.length > 120 ? '...' : ''}</p>
+                        <div style="margin-top:10px;">
+                            ${art.image ? '<span class="badge badge-blue">🖼️ Фото</span>' : ''}
+                            ${art.files && art.files.length > 0 ? `<span class="badge badge-orange">📎 ${art.files.length}</span>` : ''}
+                        </div>
+                        <button class="btn btn-primary" style="margin-top:10px; width:100%;">↗️ Открыть</button>
+                    </div>`;
+            });
+            html += '</div>';
+            grid.innerHTML = html;
+        } else {
+            grid.innerHTML = `<button class="btn btn-secondary" onclick="loadWiki()" style="margin-bottom:15px;">← Назад</button><p class="text-center text-muted">Нет статей</p>`;
+        }
+    } catch(e) {
+        console.error('Category error:', e);
+    }
+}
+
+function openArticle(id) {
+    window.open('/article/' + id, '_blank');
+}
+
+// Сообщения
+async function loadMessages() {
+    try {
+        const res = await fetch('/messages');
+        const data = await res.json();
+        const grid = document.getElementById('msgGrid');
+        if(data.messages && data.messages.length > 0) {
+            grid.innerHTML = data.messages.map(m => `
+                <div class="card message-card" onclick="showMessage(${m.id})">
+                    <h4>${m.title}</h4>
+                    <p>${m.content.substring(0, 100)}${m.content.length > 100 ? '...' : ''}</p>
+                    <div class="message-meta">
+                        <span class="badge badge-${m.priority==='high'?'red':'green'}">${m.priority}</span>
+                        <span>${m.assigned_to}</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            grid.innerHTML = '<p class="text-center text-muted">Нет сообщений</p>';
+        }
+    } catch(e) {
+        console.error('Messages error:', e);
+    }
+}
+
+function showMessage(id) {
+    fetch('/messages').then(r=>r.json()).then(data => {
+        const m = data.messages.find(x => x.id === id);
+        if(!m) return;
+        document.getElementById('modalTitle').textContent = m.title;
+        document.getElementById('modalBody').innerHTML = `
+            <p style="white-space:pre-wrap; line-height:1.6;">${m.content}</p>
+            <div style="margin-top:15px; padding:15px; background:#f5f5f5; border-radius:8px;">
+                <div><strong>Назначено:</strong> ${m.assigned_to}</div>
+                <div><strong>Статус:</strong> ${m.status}</div>
+                <div><strong>Дата:</strong> ${m.created_at}</div>
+            </div>`;
+        document.getElementById('messageModal').style.display = 'block';
+    });
+}
+
+function closeModal() {
+    document.getElementById('messageModal').style.display = 'none';
+}
+
+window.onclick = function(e) {
+    if(e.target.id === 'messageModal') closeModal();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+<div class="article-header">
+    <h2>{{ article.title }}</h2>
+    <div class="article-meta">
+        <span>Категория: {{ category.name }}</span>
+        <button class="copy-btn" onclick="copyArticle()">Копировать</button>
+    </div>
+</div>
+
+<div class="article-content">
+    <pre>{{ article.content }}</pre>
+</div>
+
+{% if article.image %}
+<div class="article-image-container">
+    <img src="{{ url_for('static', filename=article.image) }}" class="article-image">
+</div>
+{% endif %}
+
+{% if article.files %}
+<div class="article-files">
+    <h3>Прикрепленные файлы</h3>
+    <ul>
+        {% for file in article.files %}
+        <li>
+            <a href="{{ url_for('static', filename=file) }}" target="_blank">
+                {{ file.split('/')[-1] }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<script>
+    function copyArticle() {
+        const content = document.querySelector('.article-content pre').textContent;
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('✅ Статья скопирована!');
+            });
+        } else {
+            alert('Скопировано в буфер обмена!');
+        }
+    }
+
+    function showToast(message) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        }, 2000);
+    }
+</script>
